@@ -8,3 +8,10 @@ body {
     margin: auto;
     padding: 1em;
   }
+
+  #map {
+    height: 500px;
+    width: 100%;
+    margin-top: 20px;
+  }
+  
