@@ -63,8 +63,8 @@ map.on('load', async () => {
         paint: bikeLaneStyle,
       });
 
-        // --- Load BlueBike station data ---
-  const stations = await d3.json('data/stations.json');
+    // --- Load BlueBike station data ---
+    const stations = await d3.json('https://dsc106.com/labs/lab07/data/bluebikes-stations.json');
 
   // Append circles for each station
   const circles = svg
