@@ -18,6 +18,16 @@ const map = new mapboxgl.Map({
   maxZoom: 18, // Maximum allowed zoom
 });
 
+// Select the SVG element inside the map container
+const svg = d3.select('#map').select('svg');
+
+// Helper function to convert station lon/lat to map coordinates
+function getCoords(station) {
+  const point = new mapboxgl.LngLat(+station.lon, +station.lat);
+  const { x, y } = map.project(point);
+  return { cx: x, cy: y };
+}
+
 // ✅ Wait for the map to fully load before adding data
 map.on('load', async () => {
     // Shared paint style for both Boston and Cambridge bike lanes
@@ -52,6 +62,38 @@ map.on('load', async () => {
         source: 'cambridge_route',
         paint: bikeLaneStyle,
       });
+
+        // --- Load BlueBike station data ---
+  const stations = await d3.json('data/stations.json');
+
+  // Append circles for each station
+  const circles = svg
+    .selectAll('circle')
+    .data(stations)
+    .enter()
+    .append('circle')
+    .attr('r', 5)
+    .attr('fill', 'steelblue')
+    .attr('stroke', 'white')
+    .attr('stroke-width', 1)
+    .attr('opacity', 0.8);
+
+    // Function to update circle positions when the map moves/zooms
+    function updatePositions() {
+        circles
+        .attr('cx', (d) => getCoords(d).cx) // Set the x-position using projected coordinates
+        .attr('cy', (d) => getCoords(d).cy); // Set the y-position using projected coordinates
+    }
+  
+    // Initial position update when map loads
+    updatePositions();
+
+    // Reposition markers on map interactions
+    map.on('move', updatePositions); // Update during map movement
+    map.on('zoom', updatePositions); // Update during zooming
+    map.on('resize', updatePositions); // Update on window resize
+    map.on('moveend', updatePositions); // Final adjustment after movement ends
+
       let jsonData;
     try {
         const jsonurl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
