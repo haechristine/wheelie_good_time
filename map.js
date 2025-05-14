@@ -18,6 +18,12 @@ const map = new mapboxgl.Map({
 
 // ✅ Wait for the map to fully load before adding data
 map.on('load', async () => {
+    // Shared paint style for both Boston and Cambridge bike lanes
+  const bikeLaneStyle = {
+    'line-color': '#32D400',  // Bright green
+    'line-width': 5,          // Thicker lines
+    'line-opacity': 0.6       // Slight transparency
+  };
     // Step 1: Add the GeoJSON source for Boston bike lanes
     map.addSource('boston_route', {
       type: 'geojson',
@@ -26,15 +32,24 @@ map.on('load', async () => {
   
     // Step 2: Add a layer to visualize the bike lanes
     map.addLayer({
-      id: 'bike-lanes',
+      id: 'bike-lanes-boston',
       type: 'line',
       source: 'boston_route',
-      paint: {
-        'line-color': '#32D400',  // A bright green using hex code
-        'line-width': 5,          // Thicker lines
-        'line-opacity': 0.6       // Slightly less transparent
-        },
+      paint: bikeLaneStyle,
     });
   
-    console.log('Bike lane layer added');
+    // Cambridge bike lane source and layer
+    map.addSource('cambridge_route', {
+        type: 'geojson',
+        data: 'https://raw.githubusercontent.com/cambridgegis/cambridgegis_data/main/Recreation/Bike_Facilities/RECREATION_BikeFacilities.geojson',
+    });
+
+    map.addLayer({
+        id: 'bike-lanes-cambridge',
+        type: 'line',
+        source: 'cambridge_route',
+        paint: bikeLaneStyle,
+      });
+
+      console.log("Boston and Cambridge bike lanes loaded successfully.");
   });
