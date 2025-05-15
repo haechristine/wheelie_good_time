@@ -19,7 +19,16 @@ const map = new mapboxgl.Map({
 });
 
 // Select the SVG element inside the map container
-const svg = d3.select('#map').select('svg');
+// const svg = d3.select('#map').select('svg');
+const container = map.getContainer();
+const svg = d3.select(container)
+  .append('svg')
+  .style('position', 'absolute')
+  .style('top', 0)
+  .style('left', 0)
+  .style('width', '100%')
+  .style('height', '100%')
+  .style('pointer-events', 'none'); // Ensures the SVG doesn't block map interaction
 
 // Helper function to convert station lon/lat to map coordinates
 function getCoords(station) {
@@ -93,16 +102,4 @@ map.on('load', async () => {
     map.on('zoom', updatePositions); // Update during zooming
     map.on('resize', updatePositions); // Update on window resize
     map.on('moveend', updatePositions); // Final adjustment after movement ends
-
-      let jsonData;
-    try {
-        const jsonurl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
-
-        // Await JSON fetch
-        const jsonData = await d3.json(jsonurl);
-
-        console.log('Loaded JSON Data:', jsonData); // Log to verify structure
-    } catch (error) {
-        console.error('Error loading JSON:', error); // Handle errors
-    }
   });
