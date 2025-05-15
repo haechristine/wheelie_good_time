@@ -9,5 +9,33 @@ body {
     padding: 1em;
   }
 
- 
+  header {
+    display: flex;
+    gap: 1em;
+    align-items: baseline;
+    padding: 1em;
+  }
+  
+  label {
+    margin-left: auto;
+    font-size: 0.95em;
+  }
+  
+  #selected-time {
+    display: block;
+    font-weight: bold;
+    text-align: right;
+  }
+  
+  #any-time {
+    display: block;
+    color: #666;
+    font-style: italic;
+    text-align: right;
+  }
+
+  #time-slider {
+    width: 250px; /* or 100%, or whatever length you want */
+  }
+  
   

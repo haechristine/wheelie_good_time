@@ -28,6 +28,54 @@ function getCoords(station) {
   return { cx: x, cy: y };
 }
 
+function computeStationTraffic(stations, trips) {
+    // Compute departures
+    const departures = d3.rollup(
+      trips,
+      (v) => v.length,
+      (d) => d.start_station_id,
+    );
+  
+    // Compute arrivals similarly (assuming end_station_id)
+    const arrivals = d3.rollup(
+      trips,
+      (v) => v.length,
+      (d) => d.end_station_id,
+    );
+  
+    // Update each station with arrivals, departures, and totalTraffic
+    return stations.map((station) => {
+      let id = station.short_name;
+      const dep = departures.get(id) ?? 0;
+      const arr = arrivals.get(id) ?? 0;
+  
+      station.departures = dep;
+      station.arrivals = arr;
+      station.totalTraffic = dep + arr;
+  
+      return station;
+    });
+  }
+  
+  function minutesSinceMidnight(date) {
+    return date.getHours() * 60 + date.getMinutes();
+  }
+
+  function filterTripsbyTime(trips, timeFilter) {
+    return timeFilter === -1
+      ? trips
+      : trips.filter((trip) => {
+          const startedMinutes = minutesSinceMidnight(trip.started_at);
+          const endedMinutes = minutesSinceMidnight(trip.ended_at);
+  
+          return (
+            Math.abs(startedMinutes - timeFilter) <= 60 ||
+            Math.abs(endedMinutes - timeFilter) <= 60
+          );
+        });
+  }
+  
+
 // ✅ Wait for the map to fully load before adding data
 map.on('load', async () => {
     // Shared paint style for both Boston and Cambridge bike lanes
@@ -75,17 +123,15 @@ map.on('load', async () => {
         console.error('Error loading JSON:', error); // Handle errors
       } 
 
-      let stations = jsonData.data.stations;
     // Load Bluebikes traffic data
-    let trips;
-    try {
-    const csvUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
-    trips = await d3.csv(csvUrl);
-
-    console.log('Loaded Traffic Data:', trips); // Verify structure
-    } catch (error) {
-    console.error('Error loading CSV:', error); // Handle errors
-    }
+    let trips = await d3.csv(
+        'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv',
+        (trip) => {
+          trip.started_at = new Date(trip.started_at);
+          trip.ended_at = new Date(trip.ended_at);
+          return trip;
+        },
+      );
 
     const departures = d3.rollup(
         trips,
@@ -98,16 +144,8 @@ map.on('load', async () => {
         v => v.length,
         d => d.end_station_id
       );
-      
-      stations = stations.map((station) => {
-        let id = station.short_name;
-      
-        station.arrivals = arrivals.get(id) ?? 0;
-        station.departures = departures.get(id) ?? 0;
-        station.totalTraffic = station.arrivals + station.departures;
-
-        return station;
-      });
+     
+      let stations = computeStationTraffic(jsonData.data.stations, trips);
 
       const radiusScale = d3
       .scaleSqrt()
@@ -117,9 +155,11 @@ map.on('load', async () => {
   // Append circles for each station
   const circles = svg
     .selectAll('circle')
-    .data(stations)
+    .data(stations, (d) => d.short_name)
     .enter()
     .append('circle')
+    .attr('cx', d => getCoords(d).cx)
+    .attr('cy', d => getCoords(d).cy)
     .attr('r', d => radiusScale(d.totalTraffic))
     .each(function (d) {
     // Add <title> for browser tooltips
@@ -132,11 +172,10 @@ map.on('load', async () => {
 
     // Function to update circle positions when the map moves/zooms
     function updatePositions() {
-        circles
-        .attr('cx', (d) => getCoords(d).cx) // Set the x-position using projected coordinates
-        .attr('cy', (d) => getCoords(d).cy); // Set the y-position using projected coordinates
-    }
-  
+        svg.selectAll('circle')
+          .attr('cx', d => getCoords(d).cx)
+          .attr('cy', d => getCoords(d).cy);
+      }
     // Initial position update when map loads
     updatePositions();
 
@@ -145,4 +184,71 @@ map.on('load', async () => {
     map.on('zoom', updatePositions); // Update during zooming
     map.on('resize', updatePositions); // Update on window resize
     map.on('moveend', updatePositions); // Final adjustment after movement ends
+
+    // Select slider and display elements (no # in getElementById)
+    const timeSlider = document.getElementById('time-slider');
+    const selectedTime = document.getElementById('selected-time');
+    const anyTimeLabel = document.getElementById('any-time');
+
+    function formatTime(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        const formattedHours = hours % 12 || 12;
+        const ampm = hours < 12 ? 'AM' : 'PM';
+        return `${formattedHours}:${mins.toString().padStart(2, '0')} ${ampm}`;
+      }
+
+    function updateTimeDisplay() {
+        let timeFilter = Number(timeSlider.value);
+      
+        if (timeFilter === -1) {
+          selectedTime.textContent = '';
+          anyTimeLabel.style.display = 'block';
+        } else {
+          selectedTime.textContent = formatTime(timeFilter);
+          anyTimeLabel.style.display = 'none';
+        }
+      
+        updateScatterPlot(timeFilter);
+      }      
+
+      function updateScatterPlot(timeFilter) {
+        const filteredTrips = filterTripsbyTime(trips, timeFilter);
+        const filteredStations = computeStationTraffic(stations, filteredTrips);
+      
+        // Update radius scale
+        timeFilter === -1
+          ? radiusScale.range([0, 25])
+          : radiusScale.range([3, 50]);
+      
+        const updatedCircles = svg.selectAll('circle')
+          .data(filteredStations, d => d.short_name)
+          .join(
+            enter => enter.append('circle')
+                          .attr('cx', d => getCoords(d).cx)
+                          .attr('cy', d => getCoords(d).cy)
+                          .attr('r', 0)
+                          .append('title'), // just append the title here
+            update => update,
+            exit => exit.remove()
+          );
+      
+        updatedCircles.transition()
+          .duration(500)
+          .attr('r', d => radiusScale(d.totalTraffic));
+      
+        svg.selectAll('circle title')  // Re-select all titles and update their text
+          .text(d => `${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
+      
+        updatePositions();
+      }
+      
+      
+
+    // Bind slider input event to update display
+    timeSlider.addEventListener('input', updateTimeDisplay);
+
+    // Initial call to display time
+    updateTimeDisplay();
+      
   });

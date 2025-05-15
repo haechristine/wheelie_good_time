@@ -28,6 +28,12 @@
   </li>
   <li><strong>Time Slider:</strong> A time-of-day slider lets users filter traffic data by hour, dynamically updating the station markers based on traffic patterns from about 260,000 rides in March 2024.</li>
 </ul>
+<label>
+    Filter by time:
+    <input id="time-slider" type="range" min="-1" max="1440" value="-1">
+    <time id="selected-time" style="display: block;"></time>
+    <em id="any-time" style="display: block;">(any time)</em>
+</label>
 <div id="map">
     <svg></svg>
 </div>
