@@ -216,34 +216,21 @@ map.on('load', async () => {
         const filteredTrips = filterTripsbyTime(trips, timeFilter);
         const filteredStations = computeStationTraffic(stations, filteredTrips);
       
-        // Update radius scale
         timeFilter === -1
           ? radiusScale.range([0, 25])
           : radiusScale.range([3, 50]);
       
-        const updatedCircles = svg.selectAll('circle')
+        svg.selectAll('circle')
           .data(filteredStations, d => d.short_name)
-          .join(
-            enter => enter.append('circle')
-                          .attr('cx', d => getCoords(d).cx)
-                          .attr('cy', d => getCoords(d).cy)
-                          .attr('r', 0)
-                          .append('title'), // just append the title here
-            update => update,
-            exit => exit.remove()
-          );
-      
-        updatedCircles.transition()
-          .duration(500)
+          .transition()
+          .duration(100)
           .attr('r', d => radiusScale(d.totalTraffic));
       
-        svg.selectAll('circle title')  // Re-select all titles and update their text
+        svg.selectAll('circle title')
           .text(d => `${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
       
         updatePositions();
       }
-      
-      
 
     // Bind slider input event to update display
     timeSlider.addEventListener('input', updateTimeDisplay);
