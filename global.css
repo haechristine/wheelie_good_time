@@ -38,4 +38,44 @@ body {
     width: 250px; /* or 100%, or whatever length you want */
   }
   
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin: 1em 0;
+    font-size: 0.9em;
+    color: #333;
+  }
   
+  .legend::before {
+    content: "Legend:";
+    font-weight: bold;
+    margin-right: 0.5rem;
+  }
+  
+  .legend > div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .legend > div::before {
+    content: "";
+    width: 1em;
+    height: 1em;
+    background: var(--color);
+    flex-shrink: 0;
+    border: 1px solid #ccc;
+    border-radius: 0.2em;
+
+     /* Shared CSS variables from the circle style */
+    --color-departures: steelblue;
+    --color-arrivals: darkorange;
+    --color: color-mix(
+      in oklch,
+      var(--color-departures) calc(100% * var(--departure-ratio)),
+      var(--color-arrivals)
+    );
+
+    background: var(--color);
+  }

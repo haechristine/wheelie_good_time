@@ -152,23 +152,23 @@ map.on('load', async () => {
       .domain([0, d3.max(stations, (d) => d.totalTraffic)])
       .range([0, 25]); // You can tweak [min, max] radius size
 
+      let stationFlow = d3.scaleQuantize().domain([0, 1]).range([0, 0.5, 1]);
+
   // Append circles for each station
-  const circles = svg
-    .selectAll('circle')
-    .data(stations, (d) => d.short_name)
-    .enter()
-    .append('circle')
-    .attr('cx', d => getCoords(d).cx)
-    .attr('cy', d => getCoords(d).cy)
-    .attr('r', d => radiusScale(d.totalTraffic))
-    .each(function (d) {
-    // Add <title> for browser tooltips
-    d3.select(this)
-      .append('title')
-      .text(
-        `${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`,
-      );
-  });
+  const circles = svg.selectAll('circle')
+        .data(stations, d => d.short_name)
+        .enter().append('circle')
+        .attr('fill',               'var(--color)')
+        .attr('stroke',             '#fff')
+        .attr('stroke-width',       0.5)
+        .attr('fill-opacity',       0.6)
+        .attr('pointer-events',     'auto')
+        .attr('r',                  d => radiusScale(d.totalTraffic))
+        .style('--departure-ratio', d => stationFlow(d.departures / d.totalTraffic))
+        .each(function(d) {
+      d3.select(this).append('title')
+        .text(`${d.totalTraffic} trips (${d.departures} dep, ${d.arrivals} arr)`);
+    });
 
     // Function to update circle positions when the map moves/zooms
     function updatePositions() {
@@ -224,7 +224,9 @@ map.on('load', async () => {
           .data(filteredStations, d => d.short_name)
           .transition()
           .duration(100)
-          .attr('r', d => radiusScale(d.totalTraffic));
+          .attr('r', d => radiusScale(d.totalTraffic))
+          .style('--departure-ratio', (d) =>
+                  stationFlow(d.departures/d.totalTraffic),);
       
         svg.selectAll('circle title')
           .text(d => `${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
